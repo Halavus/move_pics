@@ -1,0 +1,6 @@
+*.pyc
+__pycache__
+# exclude everything in Testfolder
+Dummyfolder/*
+# as git can't commit empty folder, we put .gitkeep in it
+!Dummyfolder/.gitkeep
