@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 
 import os
 import sys
@@ -56,7 +55,7 @@ replace()
 
 ### Do the job ###
 
-# emptying dest Folder - TODO check if func removal on production 
+# emptying dest Folder - TODO check if that function is necessary on prod 
 rm(destination_folder)
 # recreate .gitkeep
 gitkeep=[''.join([destination_folder, ".gitkeep"])]
@@ -77,9 +76,27 @@ for i in pictures:
 
     else:
         not_linked.append(i.filename)
+#        os.mkdir(''.join([cwd, 'not_linked']))
+#        dest_path=''.join([cwd, 'not_linked/', i.filename])
+#        os.link(i.path, dest_path)
 
+# export logfiles
+# TODO fix the weird behavior of touch needing the path be in list
+success_log=[''.join([cwd, "current_pictures.txt"])]
+touch(success_log)
+not_linked_log=[''.join([cwd, "not-linked_pictures.txt"])]
+touch(not_linked_log)
 
-
+# export success into file
+log = open(success_log[0], 'w')
+for item in success:
+      log.write("%s\n" % item)
+      
+# export not_linked into file
+log = open(not_linked_log[0], 'w')
+for item in not_linked:
+      log.write("%s\n" % item)
+      
 ### Debug ###
 print 'DEBUG'
 print '-'*20
