@@ -2,108 +2,137 @@
 
 import os
 import sys
+import numbers
 from rm import rm as rm
 from touch import touch as touch
 
-# Usage:
-# python util.py SOURCE/ LIST.ext DEST/
+help_string = (
+        "Usage:" 
+        "\n"
+        "main.py [SOURCE_DIR] [LIST_OF_ARTICLES.csv] [TO_KEEP.d] "
+        "[TO_TRASH.d] "
+)
 
-### Global Variables ###
-cwd=''.join([os.getcwd(), '/'])
+if sys.argv[1] in ("--help", "-help", "help", "-h"):
+    print help_string
+    sys.exit()
+else:
+    pass
+
+cwd = ""
+def mkpath(arg, wd=cwd):
+    path = ''.join([wd, arg])
+    return path
+
+
+cwd = mkpath('/', wd=os.getcwd())
+
+# ### Global Variables ###
+
 
 # Paths #
-source_folder=''.join([cwd, sys.argv[1]])
-source_articles_list=''.join([cwd, sys.argv[2]])
-destination_folder=''.join([cwd, sys.argv[3]])
+source_dir = mkpath(sys.argv[1])
+input_csv = mkpath(sys.argv[2])
+to_keep_dir = mkpath(sys.argv[3])
+to_trash_dir = mkpath(sys.argv[4])
+ls_source_dir = os.listdir(source_dir)
 
-pics_list=os.listdir(source_folder)
+with open(input_csv, 'rb') as f:
+    articles_list = [i[:7] for i in f]
 
-articles_list=[]
-with open(source_articles_list, 'rb') as f:
-    for i in f:
-        i=i[:7]
-        articles_list.append(i)
+articles_list = [i.replace('\r\n', '') for i in articles_list]
 
 
-### Classes ###
+# ### Classes ###
 class Picture:
     '''A class defined by 3 attributes.
 
     -the filename of the picture
-    -the article number (self.anb) which has to beginn with a 'A'
+    -the article number (anb) which has to beginn with a 'A'
     and not 'a'. format: 'A123456'
     -the path of the picture
     '''
 
-    def __init__(self, filename, source_folder=source_folder):
-        self.filename=filename # A******.foo
-        correct_A=filename.replace('a', 'A')
-        self.anb=correct_A[:7]
-        self.path=''.join([source_folder, self.filename])
+    def __init__(self, filename, source_dir=source_dir):
+        self.filename = filename
+        anb_small = filename[:7]
 
+        ''' Check if the file really contains the pattern
+        AXXXXXX... X should be integers
+        '''
+        try:
+            [isinstance(int(x), numbers.Number) for x in anb_small[1:]]
+            # The A-Nb. evt has 'a' instead of 'A'
+            self.anb = anb_small.replace('a', 'A')
 
-### Functions ###
+        except ValueError:
+            self.anb = None
 
-def replace(lst=articles_list):
-    counter = 0
-    for i in lst:                    
-        lst[counter]=i.replace('\r\n','')
-        counter+=1
-replace()
+        self.path = mkpath(self.filename, wd=source_dir)
 
-
-
-### Do the job ###
-
-# emptying dest Folder - TODO check if that function is necessary on prod 
-rm(destination_folder)
+# ### Do the job ###
+'''
+# emptying directories, for debug purpose - TODO add option
+rm(to_keep_dir)
+rm(to_trash_dir)
+'''
 # recreate .gitkeep
-gitkeep=[''.join([destination_folder, ".gitkeep"])]
-touch(gitkeep)
+touch([mkpath(".gitkeep", wd=to_keep_dir)])
 
-pictures=[]
-for i in pics_list:
-    item=Picture(i)
-    pictures.append(item)
 
-success=[]
-not_linked=[]
-for i in pictures:
-    if i.anb in articles_list:
-        success.append(i.filename)
-        dest_path=''.join([destination_folder, i.filename])
-        os.link(i.path, dest_path)
+images = [Picture(i) for i in ls_source_dir]
 
+
+# NOTE debug
+logs = mkpath("logs", wd=cwd)
+debug = open(logs, 'w')
+
+'''
+for item in images:
+    debug.write("%s\n" % item.filename)
+'''
+
+for pic in images:
+    if pic.anb in articles_list or not pic.anb:
+        try:
+            dest_path = mkpath(pic.filename, wd=to_keep_dir)
+            os.link(pic.path, dest_path)
+        except OSError:
+            pass
     else:
-        not_linked.append(i.filename)
-#        os.mkdir(''.join([cwd, 'not_linked']))
-#        dest_path=''.join([cwd, 'not_linked/', i.filename])
-#        os.link(i.path, dest_path)
+        try:
+            dest_path = mkpath(pic.filename, wd=to_trash_dir)
+            os.link(pic.path, dest_path)
+        except OSError:
+            pass
 
+'''
 # export logfiles
 # TODO fix the weird behavior of touch needing the path be in list
-success_log=[''.join([cwd, "current_pictures.txt"])]
+success_log = [mkpath("current_pictures.txt")]
 touch(success_log)
-not_linked_log=[''.join([cwd, "not-linked_pictures.txt"])]
-touch(not_linked_log)
+to_trash_log = [mkpath("not-linked_pictures.txt")]
+touch(to_trash_log)
 
 # export success into file
 log = open(success_log[0], 'w')
 for item in success:
-      log.write("%s\n" % item)
-      
-# export not_linked into file
-log = open(not_linked_log[0], 'w')
-for item in not_linked:
-      log.write("%s\n" % item)
-      
-### Debug ###
+    log.write("%s\n" % item)
+
+# export to_trash into file
+log = open(to_trash_log[0], 'w')
+for item in to_trash:
+    log.write("%s\n" % item)
+'''
+'''
+# ### Debug ###
 print 'DEBUG'
-print '-'*20
+print '-' * 20
 print '\n'
-print 'From source folder: ', source_folder
-#print 'This is the python-generated articles_list: ', articles_list
-print 'This is the list of pictures found in source folder: ', pics_list
+print 'From source dir: ', source_dir
+# print 'This is the python-generated articles_list: ', articles_list
+#print 'This is the list of images found in source dir: ', ls_source_dir
 
 print 'successfully linked picture(s): ', success
-print 'Those files were not linked: ', not_linked
+#print 'Those files will be to trash: ', to_trash
+'''
