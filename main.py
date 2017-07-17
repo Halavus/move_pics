@@ -19,13 +19,10 @@ if sys.argv[1] in ("--help", "-help", "help", "-h"):
 else:
     pass
 
-cwd = ""
-def mkpath(arg, wd=cwd):
-    path = ''.join([wd, arg])
+cwd = os.getcwd()
+def mkpath(filename, wd=cwd):
+    path = os.path.join(wd, filename)
     return path
-
-
-cwd = mkpath('/', wd=os.getcwd())
 
 # ### Global Variables ###
 
@@ -35,6 +32,8 @@ source_dir = mkpath(sys.argv[1])
 input_csv = mkpath(sys.argv[2])
 to_keep_dir = mkpath(sys.argv[3])
 to_trash_dir = mkpath(sys.argv[4])
+
+# The files #
 ls_source_dir = os.listdir(source_dir)
 
 with open(input_csv, 'rb') as f:
@@ -58,7 +57,7 @@ class Picture:
         anb_small = filename[:7]
 
         ''' Check if the file really contains the pattern
-        AXXXXXX... X should be integers
+        AXXXXXX... X should all be integers
         '''
         try:
             [isinstance(int(x), numbers.Number) for x in anb_small[1:]]
@@ -84,7 +83,7 @@ images = [Picture(i) for i in ls_source_dir]
 
 
 # NOTE debug
-logs = mkpath("logs", wd=cwd)
+logs = mkpath("logs")
 debug = open(logs, 'w')
 
 '''
